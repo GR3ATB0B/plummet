@@ -43,30 +43,43 @@ public enum KinematicsSolver {
     }
 
     static func solveOverdetermined(_ input: KinematicsInput) -> SolveResult {
-        // Choose a canonical 3-subset (priority so `a` is trusted when present).
+        // Trust knowns in this priority order; try 3-subsets in that order (canonical
+        // = first three) until one actually solves. Falling back to an alternate subset
+        // rescues cases where the canonical trio is degenerate (e.g. a == 0).
         let priority: [Variable] = [.a, .t, .v0, .v, .s]
         let knownOrdered = priority.filter { input.known.contains($0) }
-        let subset = Array(knownOrdered.prefix(3))
-        var trimmed: [Variable: Double] = [:]
-        for v in subset { trimmed[v] = input.values[v] }
+        for subset in combinations(knownOrdered, choose: 3) {
+            var trimmed: [Variable: Double] = [:]
+            for v in subset { trimmed[v] = input.values[v] }
 
-        let base = solveExactlyThree(KinematicsInput(trimmed))
-        guard case let .solved(values, _) = base else { return base }
+            let base = solveExactlyThree(KinematicsInput(trimmed))
+            guard case let .solved(values, _) = base else { continue }
 
-        // Predicted full picture = trimmed knowns + solved values.
-        var predicted = trimmed
-        for (k, sv) in values { predicted[k] = sv.value }
+            var predicted = trimmed
+            for (k, sv) in values { predicted[k] = sv.value }
 
-        // Compare against every supplied known not in the subset.
-        var conflicts: Set<Variable> = []
-        for v in input.known where !subset.contains(v) {
-            let supplied = input.values[v]!
-            let expected = predicted[v] ?? .nan
-            let tol = max(1e-4, abs(expected) * 1e-4)
-            if abs(supplied - expected) > tol { conflicts.insert(v) }
+            var conflicts: Set<Variable> = []
+            for v in input.known where !subset.contains(v) {
+                let supplied = input.values[v]!
+                let expected = predicted[v] ?? .nan
+                let tol = max(1e-4, abs(expected) * 1e-4)
+                if abs(supplied - expected) > tol { conflicts.insert(v) }
+            }
+            if !conflicts.isEmpty { return .conflict(conflicts) }
+            return .solved(values: values, secondSolution: nil)
         }
-        if !conflicts.isEmpty { return .conflict(conflicts) }
-        return .solved(values: values, secondSolution: nil)
+        return .noRealSolution
+    }
+
+    /// All k-length combinations of `arr`, preserving input order (so the first
+    /// combination is the first `k` elements — the canonical trusted subset).
+    static func combinations(_ arr: [Variable], choose k: Int) -> [[Variable]] {
+        guard k > 0 else { return [[]] }
+        guard arr.count >= k else { return [] }
+        if arr.count == k { return [arr] }
+        let first = arr[0]
+        let rest = Array(arr.dropFirst())
+        return combinations(rest, choose: k - 1).map { [first] + $0 } + combinations(rest, choose: k)
     }
 
     private struct Candidate { let uVal: Double; let wVal: Double; let wEq: Equation }

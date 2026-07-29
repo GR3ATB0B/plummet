@@ -15,4 +15,13 @@ final class ConflictTests: XCTestCase {
         guard case let .conflict(vars) = r else { return XCTFail("expected conflict") }
         XCTAssertTrue(vars.contains(.s))
     }
+
+    func testOverInputWithZeroAccelerationSolves() {
+        // a=0, v0=5, v=5, s=15 -> consistent (t=3 via s=v0·t). Canonical subset [a,v0,v]
+        // is degenerate (t via v=v0+a·t divides by a=0); an alternate subset must rescue it.
+        let r = KinematicsSolver.solve(KinematicsInput([.a: 0, .v0: 5, .v: 5, .s: 15]))
+        if case .noRealSolution = r { XCTFail("should solve via alternate subset") }
+        if case .conflict = r { XCTFail("consistent input should not be a conflict") }
+        guard case .solved = r else { return XCTFail("expected solved") }
+    }
 }
