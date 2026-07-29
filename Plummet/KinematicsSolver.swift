@@ -42,9 +42,31 @@ public enum KinematicsSolver {
         return solveExactlyThree(input)
     }
 
-    // Temporary until Task 5; treat >3 as "trust first 3" is wrong — Task 5 implements properly.
     static func solveOverdetermined(_ input: KinematicsInput) -> SolveResult {
-        return .incomplete(knownCount: input.known.count)
+        // Choose a canonical 3-subset (priority so `a` is trusted when present).
+        let priority: [Variable] = [.a, .t, .v0, .v, .s]
+        let knownOrdered = priority.filter { input.known.contains($0) }
+        let subset = Array(knownOrdered.prefix(3))
+        var trimmed: [Variable: Double] = [:]
+        for v in subset { trimmed[v] = input.values[v] }
+
+        let base = solveExactlyThree(KinematicsInput(trimmed))
+        guard case let .solved(values, _) = base else { return base }
+
+        // Predicted full picture = trimmed knowns + solved values.
+        var predicted = trimmed
+        for (k, sv) in values { predicted[k] = sv.value }
+
+        // Compare against every supplied known not in the subset.
+        var conflicts: Set<Variable> = []
+        for v in input.known where !subset.contains(v) {
+            let supplied = input.values[v]!
+            let expected = predicted[v] ?? .nan
+            let tol = max(1e-4, abs(expected) * 1e-4)
+            if abs(supplied - expected) > tol { conflicts.insert(v) }
+        }
+        if !conflicts.isEmpty { return .conflict(conflicts) }
+        return .solved(values: values, secondSolution: nil)
     }
 
     private struct Candidate { let uVal: Double; let wVal: Double; let wEq: Equation }
