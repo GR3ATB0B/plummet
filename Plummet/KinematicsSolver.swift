@@ -36,8 +36,70 @@ public enum KinematicsSolver {
         if known.count < 3 {
             return .incomplete(knownCount: known.count)
         }
-        return .incomplete(knownCount: known.count) // replaced in Task 2+
+        if known.count > 3 {
+            return solveOverdetermined(input) // Task 5 replaces; temporary passthrough below
+        }
+        return solveExactlyThree(input)
     }
+
+    // Temporary until Task 5; treat >3 as "trust first 3" is wrong — Task 5 implements properly.
+    static func solveOverdetermined(_ input: KinematicsInput) -> SolveResult {
+        return .incomplete(knownCount: input.known.count)
+    }
+
+    static func solveExactlyThree(_ input: KinematicsInput) -> SolveResult {
+        let all = Set(Variable.allCases)
+        let unknowns = Array(all.subtracting(input.known))
+        guard unknowns.count == 2 else { return .incomplete(knownCount: input.known.count) }
+        let u = unknowns[0], w = unknowns[1]
+
+        // Solve u using the equation that omits w (so it contains the 3 knowns + u).
+        let uRoots = Equation.equationOmitting(w).solve(for: u, known: input.values).filter { !$0.isNaN }
+        if uRoots.isEmpty { return .noRealSolution }
+
+        // For each candidate u-root, solve w using the equation that omits u.
+        var candidates: [(uVal: Double, wVal: Double)] = []
+        for uVal in uRoots {
+            var k = input.values
+            k[u] = uVal
+            let wRoots = Equation.equationOmitting(u).solve(for: w, known: k).filter { !$0.isNaN }
+            for wVal in wRoots { candidates.append((uVal, wVal)) }
+        }
+        if candidates.isEmpty { return .noRealSolution }
+
+        let primary = pickPrimary(candidates, u: u, w: w)
+        let uEq = Equation.equationOmitting(w)
+        let wEq = Equation.equationOmitting(u)
+        let values: [Variable: SolvedValue] = [
+            u: SolvedValue(value: primary.uVal, equation: uEq.displayString, substitution: uEq.displayString),
+            w: SolvedValue(value: primary.wVal, equation: wEq.displayString, substitution: wEq.displayString),
+        ]
+
+        // Second solution: a distinct candidate (different primary unknown value).
+        var second: [Variable: Double]? = nil
+        if let alt = candidates.first(where: { !approxEqual($0.uVal, primary.uVal) || !approxEqual($0.wVal, primary.wVal) }) {
+            second = [u: alt.uVal, w: alt.wVal]
+        }
+        return .solved(values: values, secondSolution: second)
+    }
+
+    /// Prefer solutions with non-negative time; among those the smallest time; else the original order.
+    static func pickPrimary(_ cands: [(uVal: Double, wVal: Double)], u: Variable, w: Variable) -> (uVal: Double, wVal: Double) {
+        func timeOf(_ c: (uVal: Double, wVal: Double)) -> Double? {
+            if u == .t { return c.uVal }
+            if w == .t { return c.wVal }
+            return nil
+        }
+        if timeOf(cands[0]) != nil {
+            let nonNeg = cands.filter { (timeOf($0) ?? -1) >= 0 }
+            if let best = nonNeg.min(by: { (timeOf($0) ?? .infinity) < (timeOf($1) ?? .infinity) }) {
+                return best
+            }
+        }
+        return cands[0]
+    }
+
+    static func approxEqual(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 1e-9 }
 }
 
 enum Equation: CaseIterable {
