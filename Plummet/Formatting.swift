@@ -36,7 +36,7 @@ public enum Formatting {
         }
     }
 
-    static func symbol(_ v: Variable) -> String {
+    public static func symbol(_ v: Variable) -> String {
         switch v {
         case .s: return "s"
         case .v0: return "v₀"

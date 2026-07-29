@@ -3,6 +3,7 @@ import SwiftUI
 struct FieldRowView: View {
     let variable: Variable
     @ObservedObject var state: SolverState
+    @State private var expanded = false
 
     static func label(_ v: Variable) -> String {
         switch v {
@@ -34,13 +35,29 @@ struct FieldRowView: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            row
+            if expanded, let sv = state.solved[variable] {
+                workedSteps(sv)
+            }
+        }
+    }
+
+    private var row: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(Self.label(variable))
                 .font(GridMetrics.mono)
                 .foregroundStyle(GridMetrics.inkGreen)
             Spacer()
             if origin == .solved {
-                Text("✓").font(.system(.caption2, design: .monospaced)).foregroundStyle(GridMetrics.inkGreenSoft)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
+                } label: {
+                    Text(expanded ? "▾" : "▸")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(GridMetrics.inkGreenSoft)
+                }
+                .buttonStyle(.plain)
             }
             TextField("—", text: Binding(
                 get: { state.fields[variable] ?? "" },
@@ -62,5 +79,24 @@ struct FieldRowView: View {
                 .fill(GridMetrics.pencil.opacity(origin == .conflicted ? 0.9 : 0.5))
                 .frame(height: 1)
         }
+    }
+
+    private func workedSteps(_ sv: SolvedValue) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            stepLine(sv.equation)
+            stepLine(sv.substitution)
+            stepLine("\(Formatting.symbol(variable)) = \(Formatting.number(sv.value)) \(Self.unit(variable))")
+        }
+        .padding(.leading, GridMetrics.square)
+    }
+
+    private func stepLine(_ text: String) -> some View {
+        Text(text)
+            .font(.system(.footnote, design: .monospaced))
+            .foregroundStyle(GridMetrics.inkGreenSoft)
+            .frame(height: GridMetrics.square, alignment: .bottom)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(GridMetrics.line).frame(height: 1)
+            }
     }
 }
