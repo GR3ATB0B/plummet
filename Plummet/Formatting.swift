@@ -21,17 +21,18 @@ public enum Formatting {
     }
 
     static func substitution(_ eq: Equation, for target: Variable, known k: [Variable: Double]) -> String {
-        func n(_ v: Variable) -> String {
+        func term(_ v: Variable) -> String {
+            if v == target { return symbol(v) }
             let value = k[v] ?? .nan
             let s = number(value)
             return value < 0 ? "(\(s))" : s
         }
         switch eq {
-        case .e1: return "\(symbol(target)) = \(n(.v0)) + \(n(.a))·\(n(.t))"
-        case .e2: return "\(symbol(target)) = \(n(.v0))·\(n(.t)) + ½·\(n(.a))·\(n(.t))²"
-        case .e3: return "\(symbol(target)) = ½·(\(n(.v0)) + \(n(.v)))·\(n(.t))"
-        case .e4: return "\(symbol(target))² = \(n(.v0))² + 2·\(n(.a))·\(n(.s))"
-        case .e5: return "\(symbol(target)) = \(n(.v))·\(n(.t)) − ½·\(n(.a))·\(n(.t))²"
+        case .e1: return "\(term(.v)) = \(term(.v0)) + \(term(.a))·\(term(.t))"
+        case .e2: return "\(term(.s)) = \(term(.v0))·\(term(.t)) + ½·\(term(.a))·\(term(.t))²"
+        case .e3: return "\(term(.s)) = ½·(\(term(.v0)) + \(term(.v)))·\(term(.t))"
+        case .e4: return "\(term(.v))² = \(term(.v0))² + 2·\(term(.a))·\(term(.s))"
+        case .e5: return "\(term(.s)) = \(term(.v))·\(term(.t)) − ½·\(term(.a))·\(term(.t))²"
         }
     }
 

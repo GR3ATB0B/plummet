@@ -20,4 +20,10 @@ final class FormattingTests: XCTestCase {
         let s = Formatting.substitution(.e2, for: .s, known: [.v0: 0, .a: -9.81, .t: 2])
         XCTAssertEqual(s, "s = 0·2 + ½·(−9.81)·2²")
     }
+
+    func testSubstitutionKeepsTargetSymbolic() {
+        // Solving t via e2 with s, v0, a known: target t stays symbolic, knowns numeric.
+        let s = Formatting.substitution(.e2, for: .t, known: [.s: -19.62, .v0: 0, .a: -9.81])
+        XCTAssertEqual(s, "(−19.62) = 0·t + ½·(−9.81)·t²")
+    }
 }
