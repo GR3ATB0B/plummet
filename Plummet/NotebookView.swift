@@ -8,6 +8,10 @@ struct NotebookView: View {
             GraphPaper()
             VStack(alignment: .leading, spacing: 0) {
                 titleBlock
+                    .padding(.bottom, GridMetrics.square)
+                ForEach([Variable.s, .v0, .v, .a, .t], id: \.self) { v in
+                    FieldRowView(variable: v, state: state)
+                }
                 Spacer()
             }
             .padding(.horizontal, GridMetrics.square)
