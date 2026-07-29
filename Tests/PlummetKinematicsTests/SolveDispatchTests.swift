@@ -38,6 +38,14 @@ final class SolveDispatchTests: XCTestCase {
         XCTAssertEqual(solved(r)[.s]?.equation, "s = v₀·t + ½·a·t²")
     }
 
+    func testDropGivenHeightPrimaryVelocityIsConsistent() {
+        // s=-19.62, v0=0, a=-9.81 -> primary (t=2, v=-19.62); v must satisfy v = v0 + a·t
+        let r = KinematicsSolver.solve(KinematicsInput([.s: -19.62, .v0: 0, .a: -9.81]))
+        guard case let .solved(values, _) = r else { return XCTFail("expected solved") }
+        XCTAssertEqual(values[.t]?.value ?? .nan, 2, accuracy: 1e-5)
+        XCTAssertEqual(values[.v]?.value ?? .nan, -19.62, accuracy: 1e-4)
+    }
+
     func testNoRealSolution() {
         // Known v = 0, v0 = 0, but require them to differ via a,s inconsistent sqrt:
         // v0 solved from e4 with v=0,a=-9.81,s=19.62 -> v0^2 = 0 - 2(-9.81)(19.62) ... = +384 ok.

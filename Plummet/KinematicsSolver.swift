@@ -47,35 +47,53 @@ public enum KinematicsSolver {
         return .incomplete(knownCount: input.known.count)
     }
 
+    private struct Candidate { let uVal: Double; let wVal: Double; let wEq: Equation }
+
     static func solveExactlyThree(_ input: KinematicsInput) -> SolveResult {
         let all = Set(Variable.allCases)
-        let unknowns = Array(all.subtracting(input.known))
+        let originalKnown = input.known
+        let unknowns = Array(all.subtracting(originalKnown))
         guard unknowns.count == 2 else { return .incomplete(knownCount: input.known.count) }
-        let u = unknowns[0], w = unknowns[1]
 
-        // Solve u using the equation that omits w (so it contains the 3 knowns + u).
-        let uRoots = Equation.equationOmitting(w).solve(for: u, known: input.values).filter { !$0.isNaN }
+        // Deterministic driver `u`: prefer time (legitimately two-valued), else earliest in allCases.
+        let u: Variable
+        let w: Variable
+        if unknowns.contains(.t) {
+            u = .t
+            w = unknowns.first { $0 != .t }!
+        } else {
+            let ordered = Variable.allCases.filter { unknowns.contains($0) }
+            u = ordered[0]; w = ordered[1]
+        }
+
+        // Solve u from the 3 original knowns (equation that omits w = exactly the 3 knowns + u).
+        let uEq = Equation.equationOmitting(w)
+        let uRoots = uEq.solve(for: u, known: input.values).filter { !$0.isNaN }
         if uRoots.isEmpty { return .noRealSolution }
 
-        // For each candidate u-root, solve w using the equation that omits u.
-        var candidates: [(uVal: Double, wVal: Double)] = []
+        // For each u root, solve w with a LINKING equation that references u so each
+        // (u, w) pair is mutually consistent. An equation that omits one ORIGINAL known
+        // contains both u and w.
+        var candidates: [Candidate] = []
         for uVal in uRoots {
             var k = input.values
             k[u] = uVal
-            let wRoots = Equation.equationOmitting(u).solve(for: w, known: k).filter { !$0.isNaN }
-            for wVal in wRoots { candidates.append((uVal, wVal)) }
+            for omit in Variable.allCases where originalKnown.contains(omit) {
+                let eq = Equation.equationOmitting(omit)
+                if let wVal = eq.solve(for: w, known: k).filter({ !$0.isNaN }).first {
+                    candidates.append(Candidate(uVal: uVal, wVal: wVal, wEq: eq))
+                    break
+                }
+            }
         }
         if candidates.isEmpty { return .noRealSolution }
 
-        let primary = pickPrimary(candidates, u: u, w: w)
-        let uEq = Equation.equationOmitting(w)
-        let wEq = Equation.equationOmitting(u)
+        let primary = pickPrimary(candidates, driver: u)
         let values: [Variable: SolvedValue] = [
             u: SolvedValue(value: primary.uVal, equation: uEq.displayString, substitution: uEq.displayString),
-            w: SolvedValue(value: primary.wVal, equation: wEq.displayString, substitution: wEq.displayString),
+            w: SolvedValue(value: primary.wVal, equation: primary.wEq.displayString, substitution: primary.wEq.displayString),
         ]
 
-        // Second solution: a distinct candidate (different primary unknown value).
         var second: [Variable: Double]? = nil
         if let alt = candidates.first(where: { !approxEqual($0.uVal, primary.uVal) || !approxEqual($0.wVal, primary.wVal) }) {
             second = [u: alt.uVal, w: alt.wVal]
@@ -83,18 +101,10 @@ public enum KinematicsSolver {
         return .solved(values: values, secondSolution: second)
     }
 
-    /// Prefer solutions with non-negative time; among those the smallest time; else the original order.
-    static func pickPrimary(_ cands: [(uVal: Double, wVal: Double)], u: Variable, w: Variable) -> (uVal: Double, wVal: Double) {
-        func timeOf(_ c: (uVal: Double, wVal: Double)) -> Double? {
-            if u == .t { return c.uVal }
-            if w == .t { return c.wVal }
-            return nil
-        }
-        if timeOf(cands[0]) != nil {
-            let nonNeg = cands.filter { (timeOf($0) ?? -1) >= 0 }
-            if let best = nonNeg.min(by: { (timeOf($0) ?? .infinity) < (timeOf($1) ?? .infinity) }) {
-                return best
-            }
+    /// Prefer non-negative time, smallest, when the driver is time; else the first candidate.
+    private static func pickPrimary(_ cands: [Candidate], driver: Variable) -> Candidate {
+        if driver == .t {
+            if let best = cands.filter({ $0.uVal >= 0 }).min(by: { $0.uVal < $1.uVal }) { return best }
         }
         return cands[0]
     }
