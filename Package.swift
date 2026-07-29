@@ -8,7 +8,7 @@ let package = Package(
         .target(
             name: "PlummetKinematics",
             path: "Plummet",
-            sources: ["KinematicsSolver.swift"]
+            sources: ["KinematicsSolver.swift", "Formatting.swift"]
         ),
         .testTarget(
             name: "PlummetKinematicsTests",

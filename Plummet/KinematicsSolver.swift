@@ -125,8 +125,10 @@ public enum KinematicsSolver {
 
         let primary = pickPrimary(candidates, driver: u)
         let values: [Variable: SolvedValue] = [
-            u: SolvedValue(value: primary.uVal, equation: uEq.displayString, substitution: uEq.displayString),
-            w: SolvedValue(value: primary.wVal, equation: primary.wEq.displayString, substitution: primary.wEq.displayString),
+            u: SolvedValue(value: primary.uVal, equation: uEq.displayString,
+                           substitution: Formatting.substitution(uEq, for: u, known: withKnowns(input.values, u, primary.uVal, w, primary.wVal))),
+            w: SolvedValue(value: primary.wVal, equation: primary.wEq.displayString,
+                           substitution: Formatting.substitution(primary.wEq, for: w, known: withKnowns(input.values, u, primary.uVal, w, primary.wVal))),
         ]
 
         var second: [Variable: Double]? = nil
@@ -145,6 +147,10 @@ public enum KinematicsSolver {
     }
 
     static func approxEqual(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 1e-9 }
+
+    static func withKnowns(_ base: [Variable: Double], _ a: Variable, _ av: Double, _ b: Variable, _ bv: Double) -> [Variable: Double] {
+        var k = base; k[a] = av; k[b] = bv; return k
+    }
 }
 
 enum Equation: CaseIterable {
