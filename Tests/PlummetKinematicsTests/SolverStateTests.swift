@@ -50,4 +50,14 @@ final class SolverStateTests: XCTestCase {
         s.setField(.v0, to: "0"); s.setField(.t, to: "2"); s.setField(.s, to: "0")
         XCTAssertEqual(s.origin[.s], .conflicted)
     }
+
+    func testResetClearsStopwatch() {
+        var clock: TimeInterval = 50
+        let s = SolverState(now: { clock })
+        s.startStopwatch()
+        clock = 53
+        s.reset()
+        XCTAssertFalse(s.isTiming)
+        XCTAssertEqual(s.elapsed, 0)
+    }
 }

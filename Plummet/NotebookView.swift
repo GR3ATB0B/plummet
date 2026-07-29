@@ -12,6 +12,12 @@ struct NotebookView: View {
                 ForEach([Variable.s, .v0, .v, .a, .t], id: \.self) { v in
                     FieldRowView(variable: v, state: state)
                 }
+                if let second = state.secondSolution, let t2 = second[.t] {
+                    Text("▸ 2nd solution: t = \(Formatting.number(t2)) s")
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundStyle(GridMetrics.pencil)
+                        .frame(height: GridMetrics.square, alignment: .bottom)
+                }
                 if let h = state.heightReadout() {
                     Text("│s│ = \(h.meters) m  ·  \(h.feet) ft  ·  ≈ \(h.floors) floors")
                         .font(.system(.footnote, design: .monospaced))

@@ -68,6 +68,8 @@ struct FieldRowView: View {
             .font(GridMetrics.mono)
             .foregroundStyle(valueColor)
             .frame(width: GridMetrics.square * 4)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: state.solved[variable]?.value)
             Text(Self.unit(variable))
                 .font(.system(.footnote, design: .monospaced))
                 .foregroundStyle(GridMetrics.pencil)
