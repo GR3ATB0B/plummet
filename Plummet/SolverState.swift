@@ -40,6 +40,8 @@ public final class SolverState: ObservableObject {
         origin = [.a: .user, .s: .empty, .v0: .empty, .v: .empty, .t: .empty]
         solved = [:]
         secondSolution = nil
+        isTiming = false
+        elapsed = 0
         recompute()
     }
 

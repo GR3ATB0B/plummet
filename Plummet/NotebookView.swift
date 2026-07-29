@@ -12,7 +12,27 @@ struct NotebookView: View {
                 ForEach([Variable.s, .v0, .v, .a, .t], id: \.self) { v in
                     FieldRowView(variable: v, state: state)
                 }
-                Spacer()
+                if let h = state.heightReadout() {
+                    Text("│s│ = \(h.meters) m  ·  \(h.feet) ft  ·  ≈ \(h.floors) floors")
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundStyle(GridMetrics.inkGreenSoft)
+                        .frame(height: GridMetrics.square, alignment: .bottom)
+                }
+                Spacer(minLength: GridMetrics.square)
+                HStack {
+                    Button {
+                        state.reset()
+                        Haptics.tap()
+                    } label: {
+                        Text("⌫ reset")
+                            .font(.system(.footnote, design: .monospaced))
+                            .foregroundStyle(GridMetrics.pencil)
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .frame(height: GridMetrics.square * 2)
+                StopwatchBar(state: state)
             }
             .padding(.horizontal, GridMetrics.square)
             .padding(.top, GridMetrics.square * 3)
