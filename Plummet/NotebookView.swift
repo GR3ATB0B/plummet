@@ -6,6 +6,7 @@ struct NotebookView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             GraphPaper()
+                .onTapGesture { dismissKeyboard() }
             VStack(alignment: .leading, spacing: 0) {
                 titleBlock
                     .padding(.bottom, GridMetrics.square)
@@ -43,6 +44,17 @@ struct NotebookView: View {
             .padding(.horizontal, GridMetrics.square)
             .padding(.top, GridMetrics.square * 3)
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { dismissKeyboard() }
+            }
+        }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private var titleBlock: some View {
