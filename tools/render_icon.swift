@@ -28,21 +28,10 @@ let ink      = rgb(0.153, 0.153, 0.145) // near-black rock
 let facet    = rgb(0.353, 0.349, 0.333) // lighter rock face
 let pencil   = rgb(0.533, 0.529, 0.505) // motion streaks
 
-// Background
+// Solid background (no grid)
+_ = line
 ctx.setFillColor(paper)
 ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
-
-// Faint graph grid (ties to the notebook aesthetic)
-ctx.setStrokeColor(line)
-ctx.setLineWidth(2)
-let step = 1024.0 / 16.0
-var g = 0.0
-while g <= 1024.0 {
-    ctx.move(to: CGPoint(x: g, y: 0));    ctx.addLine(to: CGPoint(x: g, y: 1024))
-    ctx.move(to: CGPoint(x: 0, y: g));    ctx.addLine(to: CGPoint(x: 1024, y: g))
-    g += step
-}
-ctx.strokePath()
 
 // Motion streaks above the rock (coords are bottom-up in AppKit).
 // Tapered vertical lines suggesting a downward plunge.
