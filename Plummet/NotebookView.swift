@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotebookView: View {
     @StateObject private var state = SolverState()
+    @State private var countdown: Int? = nil
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -37,6 +38,22 @@ struct NotebookView: View {
                     }
                     .buttonStyle(.plain)
                     Spacer()
+                    Button {
+                        startCountdown()
+                    } label: {
+                        Text("▷ 3·2·1 drop")
+                            .font(.system(size: 15, design: .monospaced))
+                            .foregroundStyle(GridMetrics.inkGreen)
+                            .padding(.horizontal, GridMetrics.square)
+                            .frame(height: GridMetrics.square * 2)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(GridMetrics.inkGreen, lineWidth: 1.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(countdown != nil || state.isTiming)
+                    .opacity((countdown != nil || state.isTiming) ? 0.4 : 1)
                 }
                 .frame(height: GridMetrics.square * 2)
                 StopwatchBar(state: state)
@@ -49,6 +66,37 @@ struct NotebookView: View {
                 Spacer()
                 Button("Done") { dismissKeyboard() }
             }
+        }
+        .overlay { countdownOverlay }
+    }
+
+    @ViewBuilder
+    private var countdownOverlay: some View {
+        if let c = countdown {
+            ZStack {
+                GridMetrics.paper.opacity(0.94).ignoresSafeArea()
+                Text(c == 0 ? "GO" : "\(c)")
+                    .font(.system(size: c == 0 ? 150 : 240, weight: .regular, design: .monospaced))
+                    .foregroundStyle(c == 0 ? GridMetrics.inkGreen : GridMetrics.ink)
+            }
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+    }
+
+    private func startCountdown() {
+        guard countdown == nil, !state.isTiming else { return }
+        Task { @MainActor in
+            for n in [3, 2, 1] {
+                withAnimation(.easeOut(duration: 0.15)) { countdown = n }
+                Haptics.countTick()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            withAnimation(.easeOut(duration: 0.15)) { countdown = 0 }  // GO
+            Haptics.drop()
+            state.startStopwatch()
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            withAnimation(.easeOut(duration: 0.25)) { countdown = nil }
         }
     }
 

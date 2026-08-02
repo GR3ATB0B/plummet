@@ -44,4 +44,19 @@ enum Haptics {
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         #endif
     }
+
+    /// A firm tick for each countdown number (3, 2, 1).
+    static func countTick() {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+    }
+
+    /// A heavy thump at "GO" — the drop.
+    static func drop() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        #endif
+    }
 }
